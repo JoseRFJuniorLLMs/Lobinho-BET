@@ -670,34 +670,120 @@ HTML_TEMPLATE = """
         .field-team-labels .home { color: var(--home-color); }
         .field-team-labels .away { color: var(--away-color); }
 
-        /* Attack Momentum Chart - Full Width */
+        /* Attack Momentum Chart - Full Width - Technical Style */
         .momentum-chart-container {
-            background: var(--bg-card-alt);
+            background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
             border-radius: 0;
             padding: 15px 20px;
             margin: 20px -20px 0 -20px;
             width: calc(100% + 40px);
+            border-top: 1px solid rgba(0, 210, 106, 0.2);
+            border-bottom: 1px solid rgba(0, 168, 255, 0.2);
         }
 
         .momentum-chart-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .momentum-chart-title {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
+        .momentum-chart-title .tech-badge {
+            background: rgba(0, 210, 106, 0.15);
+            color: var(--accent-green);
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .momentum-chart-legend {
+            display: flex;
+            gap: 15px;
+            font-size: 10px;
+        }
+
+        .momentum-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .momentum-legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .momentum-legend-dot.home { background: linear-gradient(135deg, #00ff88, #00d26a); box-shadow: 0 0 6px rgba(0, 210, 106, 0.5); }
+        .momentum-legend-dot.away { background: linear-gradient(135deg, #00d4ff, #0088ff); box-shadow: 0 0 6px rgba(0, 168, 255, 0.5); }
 
         .momentum-chart {
             position: relative;
-            height: 150px;
-            background: var(--bg-dark);
-            border-radius: 0;
+            height: 140px;
+            background: linear-gradient(180deg, rgba(0, 210, 106, 0.03) 0%, transparent 50%, rgba(0, 168, 255, 0.03) 100%);
+            border-radius: 4px;
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Grid Lines */
+        .momentum-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .momentum-grid-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255,255,255,0.04);
+        }
+
+        .momentum-grid-line.center {
+            top: 50%;
+            background: rgba(255,255,255,0.15);
+            height: 2px;
+        }
+
+        .momentum-grid-line:nth-child(1) { top: 10%; }
+        .momentum-grid-line:nth-child(2) { top: 25%; }
+        .momentum-grid-line:nth-child(3) { top: 40%; }
+        .momentum-grid-line:nth-child(5) { top: 60%; }
+        .momentum-grid-line:nth-child(6) { top: 75%; }
+        .momentum-grid-line:nth-child(7) { top: 90%; }
+
+        /* Y-Axis Labels */
+        .momentum-y-axis {
+            position: absolute;
+            left: 5px;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 8px;
+            color: rgba(255,255,255,0.3);
+            font-family: 'Consolas', monospace;
+            z-index: 5;
         }
 
         .momentum-chart-center {
@@ -705,8 +791,8 @@ HTML_TEMPLATE = """
             left: 0;
             right: 0;
             top: 50%;
-            height: 1px;
-            background: rgba(255,255,255,0.3);
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
             z-index: 1;
         }
 
@@ -714,8 +800,10 @@ HTML_TEMPLATE = """
             display: flex;
             align-items: center;
             height: 100%;
-            gap: 1px;
-            padding: 0;
+            gap: 0;
+            padding: 0 25px;
+            position: relative;
+            z-index: 2;
         }
 
         .momentum-bar-wrapper {
@@ -725,35 +813,176 @@ HTML_TEMPLATE = """
             flex-direction: column;
             justify-content: center;
             position: relative;
+            padding: 0 1px;
+        }
+
+        .momentum-bar-wrapper:hover .momentum-bar {
+            filter: brightness(1.3);
+        }
+
+        .momentum-bar-wrapper:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            font-size: 9px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            z-index: 100;
+            font-family: 'Consolas', monospace;
         }
 
         .momentum-bar {
-            width: 100%;
-            transition: height 0.3s ease;
-            border-radius: 2px;
+            width: 3px;
+            min-width: 2px;
+            max-width: 4px;
+            margin: 0 auto;
+            transition: all 0.2s ease;
+            border-radius: 1px;
+            position: relative;
         }
 
         .momentum-bar.home {
-            background: linear-gradient(180deg, #00d26a 0%, #00a854 100%);
+            background: linear-gradient(180deg, #00ff88 0%, #00d26a 50%, #009945 100%);
+            box-shadow: 0 0 4px rgba(0, 210, 106, 0.4), 0 -2px 8px rgba(0, 255, 136, 0.2);
             align-self: flex-end;
             margin-bottom: 50%;
             transform: translateY(50%);
         }
 
         .momentum-bar.away {
-            background: linear-gradient(0deg, #00a8ff 0%, #0077cc 100%);
+            background: linear-gradient(0deg, #00d4ff 0%, #0088ff 50%, #0066cc 100%);
+            box-shadow: 0 0 4px rgba(0, 168, 255, 0.4), 0 2px 8px rgba(0, 212, 255, 0.2);
             align-self: flex-start;
             margin-top: 50%;
             transform: translateY(-50%);
+        }
+
+        /* High intensity glow */
+        .momentum-bar.home.high-intensity {
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.8), 0 -4px 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .momentum-bar.away.high-intensity {
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.8), 0 4px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        /* Peak markers */
+        .momentum-peak {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .momentum-peak.home {
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            top: 0;
+        }
+
+        .momentum-peak.away {
+            background: #00d4ff;
+            box-shadow: 0 0 10px #00d4ff;
+            bottom: 0;
+            top: auto;
+        }
+
+        /* Stats overlay */
+        .momentum-stats-overlay {
+            position: absolute;
+            top: 5px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            font-size: 10px;
+            font-family: 'Consolas', monospace;
+            z-index: 10;
+        }
+
+        .momentum-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .momentum-stat-value {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .momentum-stat-value.home { color: #00ff88; text-shadow: 0 0 10px rgba(0,255,136,0.5); }
+        .momentum-stat-value.away { color: #00d4ff; text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+
+        .momentum-stat-label {
+            font-size: 8px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
         }
 
         .momentum-time-labels {
             display: flex;
             justify-content: space-between;
             margin-top: 8px;
-            font-size: 10px;
-            color: var(--text-muted);
+            padding: 0 25px;
+            font-size: 9px;
+            color: rgba(255,255,255,0.35);
+            font-family: 'Consolas', monospace;
         }
+
+        .momentum-time-labels span {
+            position: relative;
+        }
+
+        .momentum-time-labels span::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            width: 1px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Technical indicators */
+        .momentum-indicators {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            padding: 10px 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            font-family: 'Consolas', monospace;
+        }
+
+        .momentum-indicator-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .momentum-indicator-label {
+            font-size: 8px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .momentum-indicator-value {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .momentum-indicator-value.positive { color: #00ff88; }
+        .momentum-indicator-value.negative { color: #ff6b6b; }
+        .momentum-indicator-value.neutral { color: #ffc107; }
 
         /* 6 Segment Dividers */
         .momentum-segments {
@@ -1758,7 +1987,7 @@ HTML_TEMPLATE = """
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>LOBINHO-BET <span style="font-size: 13px; color: var(--text-secondary); font-weight: 400;">Dashboard Ao Vivo</span></h1>
+            <h1>🐺 LOBINHO-BET <span style="font-size: 13px; color: var(--text-secondary); font-weight: 400;">Dashboard Ao Vivo</span></h1>
             <div class="header-stats">
                 <div class="stat-box">
                     <div class="stat-value" id="total-events">0</div>
@@ -2340,45 +2569,107 @@ HTML_TEMPLATE = """
                             </div>
                         </div>
 
-                        <!-- Attack Momentum Chart -->
+                        <!-- Attack Momentum Chart - Technical -->
                         ${match.momentum_history ? `
                         <div class="momentum-chart-container">
                             <div class="momentum-chart-header">
-                                <span class="momentum-chart-title">📊 Attack Momentum</span>
-                                <span style="font-size: 11px; color: var(--text-secondary);">${match.minute}'</span>
+                                <span class="momentum-chart-title">
+                                    <span>⚡ ATTACK MOMENTUM</span>
+                                    <span class="tech-badge">LIVE</span>
+                                </span>
+                                <div class="momentum-chart-legend">
+                                    <div class="momentum-legend-item">
+                                        <div class="momentum-legend-dot home"></div>
+                                        <span style="color: rgba(255,255,255,0.5)">${match.home_team.split(' ')[0]}</span>
+                                    </div>
+                                    <div class="momentum-legend-item">
+                                        <div class="momentum-legend-dot away"></div>
+                                        <span style="color: rgba(255,255,255,0.5)">${match.away_team.split(' ')[0]}</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="momentum-chart">
+                                <!-- Grid Lines -->
+                                <div class="momentum-grid">
+                                    <div class="momentum-grid-line"></div>
+                                    <div class="momentum-grid-line"></div>
+                                    <div class="momentum-grid-line"></div>
+                                    <div class="momentum-grid-line center"></div>
+                                    <div class="momentum-grid-line"></div>
+                                    <div class="momentum-grid-line"></div>
+                                    <div class="momentum-grid-line"></div>
+                                </div>
+                                <!-- Y-Axis -->
+                                <div class="momentum-y-axis">
+                                    <span>100</span>
+                                    <span>75</span>
+                                    <span>50</span>
+                                    <span>25</span>
+                                    <span>0</span>
+                                </div>
+                                <!-- Stats Overlay -->
+                                <div class="momentum-stats-overlay">
+                                    <div class="momentum-stat">
+                                        <span class="momentum-stat-value home">${getMomentumAvg(match.momentum_history, 'home')}%</span>
+                                        <span class="momentum-stat-label">AVG</span>
+                                    </div>
+                                    <div class="momentum-stat">
+                                        <span class="momentum-stat-value away">${getMomentumAvg(match.momentum_history, 'away')}%</span>
+                                        <span class="momentum-stat-label">AVG</span>
+                                    </div>
+                                </div>
                                 <div class="momentum-chart-center"></div>
                                 <!-- 6 Segment Dividers -->
                                 <div class="momentum-segments">
-                                    <div class="momentum-segment"><span class="momentum-segment-label">0-15</span></div>
-                                    <div class="momentum-segment"><span class="momentum-segment-label">15-30</span></div>
-                                    <div class="momentum-segment"><span class="momentum-segment-label">30-45</span></div>
-                                    <div class="momentum-segment"><span class="momentum-segment-label">45-60</span></div>
-                                    <div class="momentum-segment"><span class="momentum-segment-label">60-75</span></div>
-                                    <div class="momentum-segment"><span class="momentum-segment-label">75-90</span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label">1T</span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label"></span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label">INT</span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label">2T</span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label"></span></div>
+                                    <div class="momentum-segment"><span class="momentum-segment-label">FIM</span></div>
                                 </div>
                                 <div class="momentum-bars">
-                                    ${match.momentum_history.map(m => `
-                                        <div class="momentum-bar-wrapper" title="${m.min}'">
-                                            <div class="momentum-bar home" style="height: ${m.home * 0.45}%;"></div>
-                                            <div class="momentum-bar away" style="height: ${m.away * 0.45}%;"></div>
+                                    ${match.momentum_history.map((m, i) => `
+                                        <div class="momentum-bar-wrapper" data-tooltip="${m.min}' H:${m.home}% A:${m.away}%">
+                                            <div class="momentum-bar home ${m.home > 70 ? 'high-intensity' : ''}" style="height: ${m.home * 0.42}%;"></div>
+                                            <div class="momentum-bar away ${m.away > 70 ? 'high-intensity' : ''}" style="height: ${m.away * 0.42}%;"></div>
+                                            ${m.home > 80 ? '<div class="momentum-peak home"></div>' : ''}
+                                            ${m.away > 80 ? '<div class="momentum-peak away"></div>' : ''}
                                         </div>
                                     `).join('')}
-                                </div>
-                                <div class="momentum-team-labels">
-                                    <span>${match.home_team.split(' ')[0]}</span>
-                                    <span>${match.away_team.split(' ')[0]}</span>
                                 </div>
                             </div>
                             <div class="momentum-time-labels">
                                 <span>0'</span>
                                 <span>15'</span>
                                 <span>30'</span>
-                                <span>45'</span>
+                                <span>HT</span>
                                 <span>60'</span>
                                 <span>75'</span>
-                                <span>90'</span>
+                                <span>FT</span>
+                            </div>
+                            <!-- Technical Indicators -->
+                            <div class="momentum-indicators">
+                                <div class="momentum-indicator-item">
+                                    <span class="momentum-indicator-label">Dominancia</span>
+                                    <span class="momentum-indicator-value ${getDominanceClass(match.momentum_history)}">${getDominanceText(match.momentum_history)}</span>
+                                </div>
+                                <div class="momentum-indicator-item">
+                                    <span class="momentum-indicator-label">Tendencia</span>
+                                    <span class="momentum-indicator-value ${getTrendClass(match.momentum_history)}">${getTrendArrow(match.momentum_history)}</span>
+                                </div>
+                                <div class="momentum-indicator-item">
+                                    <span class="momentum-indicator-label">Pico Casa</span>
+                                    <span class="momentum-indicator-value positive">${getMomentumPeak(match.momentum_history, 'home')}%</span>
+                                </div>
+                                <div class="momentum-indicator-item">
+                                    <span class="momentum-indicator-label">Pico Fora</span>
+                                    <span class="momentum-indicator-value" style="color: #00d4ff;">${getMomentumPeak(match.momentum_history, 'away')}%</span>
+                                </div>
+                                <div class="momentum-indicator-item">
+                                    <span class="momentum-indicator-label">Volatilidade</span>
+                                    <span class="momentum-indicator-value neutral">${getVolatility(match.momentum_history)}</span>
+                                </div>
                             </div>
 
                             <!-- Momentum Analysis -->
@@ -2528,6 +2819,86 @@ HTML_TEMPLATE = """
                 'sub': '🔄'
             };
             return icons[type] || '•';
+        }
+
+        // Momentum Chart Technical Indicators
+        function getMomentumAvg(history, team) {
+            if (!history || history.length === 0) return 0;
+            const sum = history.reduce((acc, m) => acc + m[team], 0);
+            return Math.round(sum / history.length);
+        }
+
+        function getMomentumPeak(history, team) {
+            if (!history || history.length === 0) return 0;
+            return Math.max(...history.map(m => m[team]));
+        }
+
+        function getDominanceClass(history) {
+            if (!history || history.length < 3) return 'neutral';
+            const homeAvg = getMomentumAvg(history, 'home');
+            const awayAvg = getMomentumAvg(history, 'away');
+            if (homeAvg > awayAvg + 10) return 'positive';
+            if (awayAvg > homeAvg + 10) return 'negative';
+            return 'neutral';
+        }
+
+        function getDominanceText(history) {
+            if (!history || history.length < 3) return 'NEUTRO';
+            const homeAvg = getMomentumAvg(history, 'home');
+            const awayAvg = getMomentumAvg(history, 'away');
+            const diff = homeAvg - awayAvg;
+            if (diff > 15) return 'CASA++';
+            if (diff > 5) return 'CASA+';
+            if (diff < -15) return 'FORA++';
+            if (diff < -5) return 'FORA+';
+            return 'NEUTRO';
+        }
+
+        function getTrendClass(history) {
+            if (!history || history.length < 5) return 'neutral';
+            const recent = history.slice(-5);
+            const older = history.slice(-10, -5);
+            if (older.length === 0) return 'neutral';
+
+            const recentHomeAvg = recent.reduce((a, m) => a + m.home, 0) / recent.length;
+            const olderHomeAvg = older.reduce((a, m) => a + m.home, 0) / older.length;
+
+            if (recentHomeAvg > olderHomeAvg + 10) return 'positive';
+            if (recentHomeAvg < olderHomeAvg - 10) return 'negative';
+            return 'neutral';
+        }
+
+        function getTrendArrow(history) {
+            if (!history || history.length < 5) return '→';
+            const recent = history.slice(-5);
+            const older = history.slice(-10, -5);
+            if (older.length === 0) return '→';
+
+            const recentHomeAvg = recent.reduce((a, m) => a + m.home, 0) / recent.length;
+            const olderHomeAvg = older.reduce((a, m) => a + m.home, 0) / older.length;
+            const diff = recentHomeAvg - olderHomeAvg;
+
+            if (diff > 15) return '⬆⬆ CASA';
+            if (diff > 5) return '↑ CASA';
+            if (diff < -15) return '⬇⬇ FORA';
+            if (diff < -5) return '↓ FORA';
+            return '→ ESTÁVEL';
+        }
+
+        function getVolatility(history) {
+            if (!history || history.length < 3) return 'BAIXA';
+
+            let changes = 0;
+            for (let i = 1; i < history.length; i++) {
+                const homeDiff = Math.abs(history[i].home - history[i-1].home);
+                const awayDiff = Math.abs(history[i].away - history[i-1].away);
+                changes += homeDiff + awayDiff;
+            }
+
+            const avgChange = changes / (history.length - 1) / 2;
+            if (avgChange > 20) return 'ALTA';
+            if (avgChange > 10) return 'MÉDIA';
+            return 'BAIXA';
         }
 
         // Momentum Analysis Functions

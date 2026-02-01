@@ -17,6 +17,8 @@ import httpx
 from bs4 import BeautifulSoup
 from loguru import logger
 
+from src.collectors.transfermarkt import TransfermarktScraper, TEAM_URLS
+
 
 class TransferType(Enum):
     """Tipo de transferência."""
@@ -216,23 +218,134 @@ class TeamAnalyzer:
 
     async def _fetch_transfer_data(self, profile: TeamProfile):
         """
-        Busca dados de transferências.
-        Nota: Em produção, usar API ou scraping mais robusto.
+        Busca dados de transferências do Transfermarkt.
         """
-        # Dados simulados para exemplo
-        # Em produção, fazer scraping do Transfermarkt ou usar API
         logger.debug(f"Fetching transfer data for {profile.name}")
 
-        # Aqui você integraria com fonte real de dados
-        # Por exemplo, scraping do Transfermarkt ou API paga
+        try:
+            # Verifica se time tem URL no Transfermarkt
+            team_key = profile.name.lower().replace(" ", "_")
+            tm_url = TEAM_URLS.get(team_key)
+
+            if not tm_url:
+                # Tenta buscar nome alternativo
+                for key, url in TEAM_URLS.items():
+                    if profile.name.lower() in key or key in profile.name.lower():
+                        tm_url = url
+                        break
+
+            if not tm_url:
+                logger.warning(f"No Transfermarkt URL for {profile.name}")
+                return
+
+            # Usa scraper do Transfermarkt
+            async with TransfermarktScraper() as scraper:
+                team_data = await scraper.get_team_data(tm_url)
+
+                if team_data:
+                    # Atualiza profile com dados reais
+                    profile.squad_value = team_data.get("squad_value", 0)
+                    profile.avg_age = team_data.get("avg_age", 0)
+                    profile.total_spent = team_data.get("total_spent", 0)
+                    profile.total_earned = team_data.get("total_earned", 0)
+                    profile.net_spend = profile.total_spent - profile.total_earned
+
+                    # Converte transferências
+                    for t in team_data.get("transfers_in", []):
+                        profile.transfers_in.append(Transfer(
+                            player_name=t.get("player", "Unknown"),
+                            player_position=t.get("position", ""),
+                            from_team=t.get("from_team", ""),
+                            to_team=profile.name,
+                            fee=t.get("fee", 0),
+                            transfer_type=TransferType.PURCHASE,
+                            date=date.today(),
+                            market_value=t.get("market_value", 0),
+                        ))
+
+                    for t in team_data.get("transfers_out", []):
+                        profile.transfers_out.append(Transfer(
+                            player_name=t.get("player", "Unknown"),
+                            player_position=t.get("position", ""),
+                            from_team=profile.name,
+                            to_team=t.get("to_team", ""),
+                            fee=t.get("fee", 0),
+                            transfer_type=TransferType.SALE,
+                            date=date.today(),
+                            market_value=t.get("market_value", 0),
+                        ))
+
+                    # Converte jogadores
+                    for p in team_data.get("players", []):
+                        player = Player(
+                            name=p.get("name", "Unknown"),
+                            position=p.get("position", ""),
+                            age=p.get("age", 0),
+                            market_value=p.get("market_value", 0),
+                            is_injured=p.get("injured", False),
+                            is_suspended=p.get("suspended", False),
+                        )
+                        profile.squad.append(player)
+
+                        if player.is_injured:
+                            profile.injured_players.append(player)
+                        if player.is_suspended:
+                            profile.suspended_players.append(player)
+
+                    logger.info(f"Loaded Transfermarkt data for {profile.name}: "
+                               f"Value={profile.squad_value}M, Spent={profile.total_spent}M")
+
+        except Exception as e:
+            logger.error(f"Error fetching Transfermarkt data for {profile.name}: {e}")
 
     async def _fetch_injury_data(self, profile: TeamProfile):
         """
-        Busca dados de lesões atuais.
+        Busca dados de lesões atuais do Transfermarkt.
         """
         logger.debug(f"Fetching injury data for {profile.name}")
 
-        # Em produção, integrar com fonte de dados de lesões
+        try:
+            # Verifica se time tem URL no Transfermarkt
+            team_key = profile.name.lower().replace(" ", "_")
+            tm_url = TEAM_URLS.get(team_key)
+
+            if not tm_url:
+                for key, url in TEAM_URLS.items():
+                    if profile.name.lower() in key or key in profile.name.lower():
+                        tm_url = url
+                        break
+
+            if not tm_url:
+                return
+
+            # Usa scraper para buscar lesões
+            async with TransfermarktScraper() as scraper:
+                injuries = await scraper.get_injuries(tm_url)
+
+                for injury in injuries:
+                    # Atualiza jogador existente ou adiciona novo
+                    player_name = injury.get("player", "")
+                    existing = next((p for p in profile.squad if p.name == player_name), None)
+
+                    if existing:
+                        existing.is_injured = True
+                        if existing not in profile.injured_players:
+                            profile.injured_players.append(existing)
+                    else:
+                        # Cria jogador apenas com info de lesão
+                        player = Player(
+                            name=player_name,
+                            position=injury.get("position", ""),
+                            age=0,
+                            market_value=0,
+                            is_injured=True,
+                        )
+                        profile.injured_players.append(player)
+
+                logger.info(f"Found {len(profile.injured_players)} injured players for {profile.name}")
+
+        except Exception as e:
+            logger.error(f"Error fetching injury data for {profile.name}: {e}")
 
     async def compare_teams(
         self,

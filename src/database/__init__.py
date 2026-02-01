@@ -1,3 +1,62 @@
 from .graph_db import GraphDatabase, InMemoryGraph, Neo4jConfig
+from .models import (
+    Base,
+    MatchStatus,
+    BetStatus,
+    BetSignal,
+    League,
+    Team,
+    Player,
+    Match,
+    OddsHistory,
+    ValueBet,
+    Bet,
+    BankrollHistory,
+    MatchAnalysis,
+    ModelPerformance,
+    SystemConfig,
+    SystemLog,
+)
+from .repository import (
+    UnitOfWork,
+    LeagueRepository,
+    TeamRepository,
+    MatchRepository,
+    ValueBetRepository,
+    BetRepository,
+    BankrollRepository,
+    ModelPerformanceRepository,
+)
 
-__all__ = ["GraphDatabase", "InMemoryGraph", "Neo4jConfig"]
+__all__ = [
+    # Graph DB
+    "GraphDatabase",
+    "InMemoryGraph",
+    "Neo4jConfig",
+    # Models
+    "Base",
+    "MatchStatus",
+    "BetStatus",
+    "BetSignal",
+    "League",
+    "Team",
+    "Player",
+    "Match",
+    "OddsHistory",
+    "ValueBet",
+    "Bet",
+    "BankrollHistory",
+    "MatchAnalysis",
+    "ModelPerformance",
+    "SystemConfig",
+    "SystemLog",
+    # Repository
+    "UnitOfWork",
+    "LeagueRepository",
+    "TeamRepository",
+    "MatchRepository",
+    "ValueBetRepository",
+    "BetRepository",
+    "BankrollRepository",
+    "ModelPerformanceRepository",
+]

@@ -1,0 +1,128 @@
+version: '3.8'
+
+# ============================================================================
+# LOBINHO-BET - Docker Compose
+# ============================================================================
+# Serviços:
+# - Neo4j: Banco de grafos para relações entre times
+# - Redis: Cache e filas
+# - PostgreSQL: Banco principal (opcional)
+# ============================================================================
+
+services:
+  # ==========================================================================
+  # NEO4J - Banco de Grafos
+  # ==========================================================================
+  neo4j:
+    image: neo4j:5.15.0-community
+    container_name: lobinho-neo4j
+    ports:
+      - "7474:7474"  # HTTP (Browser)
+      - "7687:7687"  # Bolt (Driver)
+    environment:
+      - NEO4J_AUTH=neo4j/lobinho123  # user/password
+      - NEO4J_PLUGINS=["apoc", "graph-data-science"]
+      - NEO4J_dbms_memory_heap_initial__size=512m
+      - NEO4J_dbms_memory_heap_max__size=1G
+      - NEO4J_dbms_memory_pagecache_size=512m
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    networks:
+      - lobinho-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # REDIS - Cache e Filas
+  # ==========================================================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: lobinho-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - lobinho-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # POSTGRESQL - Banco Principal (opcional)
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: lobinho-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=lobinho
+      - POSTGRES_PASSWORD=lobinho123
+      - POSTGRES_DB=lobinho_bet
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lobinho-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lobinho -d lobinho_bet"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==========================================================================
+  # LOBINHO-BET APP (opcional - para rodar tudo em container)
+  # ==========================================================================
+  # lobinho-app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: lobinho-app
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://lobinho:lobinho123@postgres:5432/lobinho_bet
+  #     - REDIS_URL=redis://redis:6379/0
+  #     - NEO4J_URI=bolt://neo4j:7687
+  #     - NEO4J_USER=neo4j
+  #     - NEO4J_PASSWORD=lobinho123
+  #   depends_on:
+  #     - neo4j
+  #     - redis
+  #     - postgres
+  #   networks:
+  #     - lobinho-network
+  #   restart: unless-stopped
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  neo4j_data:
+    driver: local
+  neo4j_logs:
+    driver: local
+  neo4j_plugins:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  lobinho-network:
+    driver: bridge

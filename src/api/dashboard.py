@@ -18,6 +18,7 @@ from src.models.value_detector import ValueDetector
 from src.strategy.bookmakers import BookmakerManager, BOOKMAKERS
 from src.strategy.event_filter import EventFilter
 from src.collectors.live_stats import LiveMatchStats
+from src.services.data_service import get_data_service, DataService
 
 app = FastAPI(title="LOBINHO-BET Dashboard", version="1.0.0")
 
@@ -685,21 +686,28 @@ async def dashboard():
 
 @app.get("/api/events")
 async def get_events():
-    """Retorna eventos rankeados."""
+    """Retorna eventos rankeados do banco de dados."""
+    try:
+        # Usa DataService para dados reais
+        data_service = get_data_service()
+        return await data_service.get_dashboard_data()
+    except Exception as e:
+        logger.error(f"Error in get_events: {e}")
+        # Fallback para dados de exemplo se banco indisponivel
+        return await _get_fallback_events()
+
+
+async def _get_fallback_events():
+    """Fallback quando banco indisponivel."""
     from src.strategy.bookmakers import BookmakerManager
 
-    # Busca eventos (em produção, viria do orchestrator)
     events = await _fetch_sample_events()
-
-    # Rankeia por Markov
     markov = MarkovPredictor()
     ranked_events = markov.rank_events(events, max_events=15)
 
-    # Filtra melhores
     event_filter = EventFilter()
     filtered = event_filter.filter_events(ranked_events, [])
 
-    # Bookmakers
     bm_manager = BookmakerManager()
     bookmakers = [
         {
@@ -714,10 +722,11 @@ async def get_events():
     return {
         "total_events": len(ranked_events),
         "value_bets_count": len([e for e in filtered if e.signal.value in ['strong_buy', 'buy']]),
-        "live_count": len([e for e in ranked_events if e.get("is_live")]),
+        "live_count": 0,
         "events": [e.to_dict() for e in filtered[:15]],
         "live_matches": [],
         "bookmakers": bookmakers,
+        "statistics": {"wins": 0, "losses": 0, "roi": 0, "profit": 0},
     }
 
 
@@ -740,6 +749,40 @@ async def get_bookmakers():
     }
 
 
+@app.get("/api/value-bets")
+async def get_value_bets(signal: Optional[str] = None):
+    """Retorna value bets detectados."""
+    try:
+        data_service = get_data_service()
+        return {"value_bets": await data_service.get_value_bets(signal)}
+    except Exception as e:
+        logger.error(f"Error getting value bets: {e}")
+        return {"value_bets": [], "error": str(e)}
+
+
+@app.get("/api/bankroll")
+async def get_bankroll(days: int = 30):
+    """Retorna historico de banca."""
+    try:
+        data_service = get_data_service()
+        return {"history": await data_service.get_bankroll_history(days)}
+    except Exception as e:
+        logger.error(f"Error getting bankroll: {e}")
+        return {"history": [], "error": str(e)}
+
+
+@app.get("/api/statistics")
+async def get_statistics():
+    """Retorna estatisticas do dia."""
+    try:
+        data_service = get_data_service()
+        data = await data_service.get_dashboard_data()
+        return {"statistics": data.get("statistics", {})}
+    except Exception as e:
+        logger.error(f"Error getting statistics: {e}")
+        return {"statistics": {"wins": 0, "losses": 0, "roi": 0, "profit": 0}}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket para atualizações em tempo real."""
@@ -751,7 +794,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # Envia updates a cada 30 segundos
             data = await get_events()
             await websocket.send_json(data)
-            await asyncio.sleep(30)
+            await asyncio.sleep(5)  # Atualiza a cada 5 segundos
 
     except WebSocketDisconnect:
         active_connections.remove(websocket)

@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     database_url: str = Field(default="sqlite+aiosqlite:///./data/lobinho.db")
     redis_url: str = Field(default="redis://localhost:6379/0")
 
+    # Neo4j Graph Database
+    neo4j_uri: str = Field(default="bolt://localhost:7687")
+    neo4j_user: str = Field(default="neo4j")
+    neo4j_password: str = Field(default="lobinho123")
+
     # API Keys
     footystats_api_key: Optional[str] = None
     odds_api_key: Optional[str] = None
